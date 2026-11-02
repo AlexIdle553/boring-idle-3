@@ -181,243 +181,41 @@ footer{
  margin-top:22px;
 }
 
-/* ASTEROIDEN-KLICK-ARENA */
 
-let arenaTargets=[];
-let arenaAnimation=null;
-let arenaLastFrame=0;
-let practiceTimeout=null;
-
-const asteroidSVG=`<svg viewBox="0 0 100 100" aria-hidden="true">
- <path d="M17 19 L39 7 L61 13 L82 28 L93 51 L79 76 L57 92 L31 84 L10 62 L7 39 Z"
-  fill="currentColor" stroke="#d5e0e2" stroke-width="4" stroke-linejoin="round"/>
- <path d="M24 27 L42 17 L51 34 L36 45 Z" fill="#35434d" opacity=".85"/>
- <path d="M61 52 L81 43 L75 66 L57 73 Z" fill="#34434c" opacity=".9"/>
- <path d="M24 62 L39 53 L46 70 L32 78 Z" fill="#9aa9aa" opacity=".45"/>
- <circle cx="55" cy="27" r="5" fill="#dce4df" opacity=".45"/>
-</svg>`;
-
-function clearTarget(){
- arenaTargets.forEach(t=>{clearTimeout(t.timeout);t.element.remove();});
- arenaTargets=[];
- if(currentTarget){currentTarget.remove();currentTarget=null;}
- clearTimeout(targetTimeout);
+/* KLICK-ARENA */
+.arenaInfo,.challengeStats,.arenaButtons{
+ display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;
 }
-
-function asteroidMarkup(type){
- const colors={normal:'#788994',gold:'#d4a52d',rainbow:'#a879d9',danger:'#a94a4a'};
- return asteroidSVG.replace('currentColor',colors[type]||colors.normal);
-}
-
-function spawnTarget(){
- if(!challengeActive)return;
- if(arenaTargets.length>=5)return;
-
- const arena=$('arena');
- const r=Math.random();
- let type='normal';
- if(r<goldChance)type='gold';
- else if(r<goldChance+.04)type='rainbow';
- else if(r<goldChance+.14)type='danger';
-
- const target=document.createElement('button');
- target.type='button';
- target.className='target asteroidTarget '+(type==='normal'?'':type);
- target.setAttribute('aria-label',type==='danger'?'Gefährlichen Asteroiden vermeiden':type==='gold'?'Goldenen Asteroiden abschießen':type==='rainbow'?'Regenbogen-Asteroiden abschießen':'Asteroiden abschießen');
- target.innerHTML=asteroidMarkup(type);
-
- const size=54;
- const maxX=Math.max(0,arena.clientWidth-size);
- const maxY=Math.max(0,arena.clientHeight-size);
- const x=Math.random()*maxX;
- const y=Math.random()*maxY;
- target.style.left=x+'px';
- target.style.top=y+'px';
- arena.append(target);
-
- const angle=Math.random()*Math.PI*2;
- const speed=25+Math.random()*45;
- const item={element:target,type,x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,size,timeout:null};
- arenaTargets.push(item);
- if(!currentTarget)currentTarget=target;
-
- target.addEventListener('click',()=>{
-  if(!challengeActive||!target.isConnected)return;
-  const rect=target.getBoundingClientRect();
-  const arenaRect=arena.getBoundingClientRect();
-  const cx=rect.left-arenaRect.left+rect.width/2;
-  const cy=rect.top-arenaRect.top+rect.height/2;
-  createAsteroidShot(arena.clientWidth/2,arena.clientHeight-8,cx,cy);
-
-  if(type==='danger'){
-   combo=0;
-   message='💥 Gefährlicher Brocken! Deine Combo wurde zurückgesetzt.';
-   createAsteroidExplosion(cx,cy,'#ff6868');
-  }else{
-   const base=type==='gold'?25:type==='rainbow'?100:5;
-   combo++;
-   challengeHits++;
-   s.totalHits++;
-   if(type==='gold')s.goldHits++;
-   if(type==='rainbow')s.rainbowHits++;
-   s.bestCombo=Math.max(s.bestCombo,combo);
-   const bonus=1+Math.min(combo-1,20)*.1;
-   const reward=clickPower()*base*bonus;
-   earn(reward);
-   roundScore+=reward;
-   createAsteroidExplosion(cx,cy,type==='gold'?'#ffd45c':type==='rainbow'?'#c69cff':'#a5f279');
-   showFloat('+'+fmt(reward),cx,cy);
-   if(type==='gold')message='🌟 Gold-Asteroid zerlegt! Riesiger Bonus!';
-   else if(type==='rainbow')message='🌈 Kosmischer Asteroid! Unglaubliche Belohnung!';
-   else message='☄️ Asteroid abgeschossen!';
-  }
-
-  clearTimeout(item.timeout);
-  target.remove();
-  arenaTargets=arenaTargets.filter(t=>t!==item);
-  currentTarget=arenaTargets[0]?.element||null;
-  $('hits').textContent=challengeHits;
-  $('combo').textContent=combo||1;
-  $('roundScore').textContent=fmt(roundScore);
-  checkAchievements();
-  render();
- });
-
- // Asteroiden verschwinden nach einigen Sekunden, wenn sie nicht getroffen werden.
- item.timeout=setTimeout(()=>{
-  if(!target.isConnected)return;
-  target.remove();
-  arenaTargets=arenaTargets.filter(t=>t!==item);
-  currentTarget=arenaTargets[0]?.element||null;
-  combo=0;
-  $('combo').textContent=1;
- },4200);
-}
-
-function animateAsteroids(timestamp){
- if(!challengeActive)return;
- const delta=Math.min((timestamp-(arenaLastFrame||timestamp))/1000,.05);
- arenaLastFrame=timestamp;
- const arena=$('arena');
- const maxX=Math.max(0,arena.clientWidth-54);
- const maxY=Math.max(0,arena.clientHeight-54);
- for(const item of arenaTargets){
-  item.x+=item.vx*delta;
-  item.y+=item.vy*delta;
-  if(item.x<0||item.x>maxX){item.vx*=-1;item.x=Math.max(0,Math.min(maxX,item.x));}
-  if(item.y<0||item.y>maxY){item.vy*=-1;item.y=Math.max(0,Math.min(maxY,item.y));}
-  item.element.style.left=item.x+'px';
-  item.element.style.top=item.y+'px';
- }
- arenaAnimation=requestAnimationFrame(animateAsteroids);
-}
-
-function createAsteroidShot(x1,y1,x2,y2){
- const arena=$('arena');
- const beam=document.createElement('div');
- beam.className='asteroidShot';
- const dx=x2-x1,dy=y2-y1;
- beam.style.left=x1+'px';beam.style.top=y1+'px';
- beam.style.width=Math.hypot(dx,dy)+'px';
- beam.style.transform=`rotate(${Math.atan2(dy,dx)}rad)`;
- arena.append(beam);
- setTimeout(()=>beam.remove(),180);
-}
-
-function createAsteroidExplosion(x,y,color){
- const boom=document.createElement('div');
- boom.className='asteroidExplosion';
- boom.style.left=(x-11)+'px';boom.style.top=(y-11)+'px';
- boom.style.borderColor=color;
- $('arena').append(boom);
- setTimeout(()=>boom.remove(),420);
-}
-
-function showFloat(text,x,y){
- const el=document.createElement('div');
- el.className='floatText';el.textContent=text;
- el.style.left=x+'px';el.style.top=y+'px';
- $('arena').append(el);
- setTimeout(()=>el.remove(),850);
-}
-
-/* CHALLENGE */
-function startChallenge(){
- if(challengeActive)return;
- challengeActive=true;
- challengeTime=15;challengeHits=0;roundScore=0;combo=0;
- arenaLastFrame=0;
- $('hits').textContent=0;$('combo').textContent=1;$('roundScore').textContent=0;$('timer').textContent=15;
- $('arenaMessage').style.display='none';
- $('startChallenge').disabled=true;
- $('startChallenge').textContent='☄️ Asteroiden-Abwehr läuft!';
- $('timeBar').style.width='100%';
- message='Asteroidenalarm! Schieße die Brocken ab!';
- render();
- clearTarget();
- for(let i=0;i<3;i++)spawnTarget();
- spawnInterval=setInterval(spawnTarget,650);
- arenaAnimation=requestAnimationFrame(animateAsteroids);
- challengeInterval=setInterval(()=>{
-  challengeTime--;
-  $('timer').textContent=challengeTime;
-  $('timeBar').style.width=(challengeTime/15*100)+'%';
-  if(challengeTime<=0)finishChallenge();
- },1000);
-}
-
-function finishChallenge(){
- if(!challengeActive)return;
- challengeActive=false;
- clearInterval(challengeInterval);clearInterval(spawnInterval);
- clearTarget();
- if(arenaAnimation){cancelAnimationFrame(arenaAnimation);arenaAnimation=null;}
- s.challenges++;
- $('arenaMessage').style.display='grid';
- $('arenaMessage').innerHTML=`<div><strong>🏁 Sektor gesichert!</strong><br>Du hast ${challengeHits} Asteroiden getroffen.<br><span style="color:var(--gold)">+${fmt(roundScore)} Punkte gesammelt!</span></div>`;
- $('startChallenge').disabled=false;
- $('startChallenge').textContent='🚀 Neue Runde starten';
- combo=0;$('combo').textContent=1;
- message='Asteroiden-Abwehr beendet! Deine Punkte wurden gutgeschrieben.';
- checkAchievements();render();
-}
-
-$('startChallenge').onclick=startChallenge;
-
-/* ÜBUNGS-ASTEROID */
-$('practice').onclick=()=>{
- if(challengeActive){message='Beende erst deine laufende Challenge.';render();return;}
- const arena=$('arena');
- const old=arena.querySelector('.practiceTarget');
- if(old)old.remove();
- clearTimeout(practiceTimeout);
- const target=document.createElement('button');
- target.type='button';target.className='target asteroidTarget practiceTarget';
- target.setAttribute('aria-label','Übungs-Asteroid abschießen');
- target.innerHTML=asteroidMarkup('normal');
- target.style.left=Math.random()*Math.max(0,arena.clientWidth-58)+'px';
- target.style.top=Math.random()*Math.max(0,arena.clientHeight-58)+'px';
- arena.append(target);
- $('arenaMessage').style.display='none';
- target.onclick=()=>{
-  const rect=target.getBoundingClientRect(),ar=arena.getBoundingClientRect();
-  const x=rect.left-ar.left+rect.width/2,y=rect.top-ar.top+rect.height/2;
-  createAsteroidShot(arena.clientWidth/2,arena.clientHeight-8,x,y);
-  createAsteroidExplosion(x,y,'#a5f279');
-  const reward=clickPower()*3;earn(reward);s.totalHits++;
-  target.remove();message='Übungs-Asteroid abgeschossen! +'+fmt(reward)+' Punkte.';
-  checkAchievements();render();
-  $('arenaMessage').style.display='grid';
-  $('arenaMessage').innerHTML='<div><strong>Treffer!</strong><br>Bereit für die nächste Runde?</div>';
- };
- practiceTimeout=setTimeout(()=>{
-  if(target.isConnected)target.remove();
-  if(!challengeActive&&!arena.querySelector('.practiceTarget')){
-   $('arenaMessage').style.display='grid';
-   $('arenaMessage').innerHTML='<div><strong>Übung beendet</strong><br>Starte die Challenge für ein ganzes Asteroidenfeld.</div>';
-  }
- },4500);
-};
+.arenaInfo{font-size:14px;margin:12px 0}
+.combo{color:var(--gold)}
+.arena{position:relative;height:320px;overflow:hidden;border:1px solid #454b55;
+ border-radius:14px;background:radial-gradient(ellipse at center,#26313a,#101318 75%);}
+.arenaMessage{position:absolute;inset:0;display:grid;place-items:center;text-align:center;
+ padding:20px;color:var(--muted);pointer-events:none;z-index:2}
+.arenaMessage strong{color:var(--green);font-size:20px}
+.target{position:absolute;width:54px;height:54px;padding:5px;border:0;border-radius:50%;
+ display:grid;place-items:center;z-index:3;touch-action:manipulation}
+.asteroidTarget{background:transparent;color:white;filter:drop-shadow(0 3px 5px #0009)}
+.asteroidTarget svg{display:block;width:100%;height:100%;pointer-events:none}
+.asteroidTarget.gold{filter:drop-shadow(0 0 8px #ffd45c)}
+.asteroidTarget.rainbow{filter:drop-shadow(0 0 9px #c69cff)}
+.asteroidTarget.danger{filter:drop-shadow(0 0 8px #ff6868)}
+.asteroidTarget.practiceTarget{filter:drop-shadow(0 0 7px #a5f279)}
+.asteroidShot{position:absolute;height:3px;transform-origin:left center;
+ background:linear-gradient(90deg,#a5f279,#fff);box-shadow:0 0 9px #a5f279;z-index:4;
+ pointer-events:none}
+.asteroidExplosion{position:absolute;width:22px;height:22px;border:3px solid;border-radius:50%;
+ animation:asteroidBoom .4s ease-out forwards;z-index:4;pointer-events:none}
+.floatText{position:absolute;color:var(--green);font-weight:800;text-shadow:0 2px 5px #000;
+ transform:translate(-50%,-50%);animation:floatUp .85s ease-out forwards;z-index:5;pointer-events:none}
+@keyframes asteroidBoom{from{transform:scale(.4);opacity:1}to{transform:scale(3);opacity:0}}
+@keyframes floatUp{from{opacity:1;transform:translate(-50%,0)}to{opacity:0;transform:translate(-50%,-35px)}}
+.challengeStats{margin:14px 0}
+.challengeStat{flex:1;min-width:90px;background:#111216;border-radius:10px;padding:10px;text-align:center}
+.challengeStat strong{display:block;color:var(--green);font-size:18px}
+.challengeStat span{font-size:12px;color:var(--muted)}
+.arenaButtons{justify-content:center;margin-top:12px}
+.arenaButtons button{flex:1;min-width:145px}
 
 /* EVENTS */
 
@@ -1350,304 +1148,242 @@ $("click").onclick=()=>{
 
 };
 
-/* ARENA */
+/* ASTEROIDEN-KLICK-ARENA */
+
+let arenaTargets=[];
+let arenaAnimation=null;
+let arenaLastFrame=0;
+let practiceTimeout=null;
+
+const asteroidSVG=`<svg viewBox="0 0 100 100" aria-hidden="true">
+ <path d="M17 19 L39 7 L61 13 L82 28 L93 51 L79 76 L57 92 L31 84 L10 62 L7 39 Z"
+  fill="currentColor" stroke="#d5e0e2" stroke-width="4" stroke-linejoin="round"/>
+ <path d="M24 27 L42 17 L51 34 L36 45 Z" fill="#35434d" opacity=".85"/>
+ <path d="M61 52 L81 43 L75 66 L57 73 Z" fill="#34434c" opacity=".9"/>
+ <path d="M24 62 L39 53 L46 70 L32 78 Z" fill="#9aa9aa" opacity=".45"/>
+ <circle cx="55" cy="27" r="5" fill="#dce4df" opacity=".45"/>
+</svg>`;
 
 function clearTarget(){
-
- if(currentTarget){
-
-  currentTarget.remove();
-  currentTarget=null;
-
- }
-
+ arenaTargets.forEach(t=>{clearTimeout(t.timeout);t.element.remove();});
+ arenaTargets=[];
+ if(currentTarget){currentTarget.remove();currentTarget=null;}
  clearTimeout(targetTimeout);
+}
 
+function asteroidMarkup(type){
+ const colors={normal:'#788994',gold:'#d4a52d',rainbow:'#a879d9',danger:'#a94a4a'};
+ return asteroidSVG.replace('currentColor',colors[type]||colors.normal);
 }
 
 function spawnTarget(){
+ if(!challengeActive)return;
+ if(arenaTargets.length>=5)return;
 
- if(!challengeActive||currentTarget)return;
-
- const arena=$("arena");
-
- const target=document.createElement("button");
-
+ const arena=$('arena');
  const r=Math.random();
+ let type='normal';
+ if(r<goldChance)type='gold';
+ else if(r<goldChance+.04)type='rainbow';
+ else if(r<goldChance+.14)type='danger';
 
- let type="normal";
+ const target=document.createElement('button');
+ target.type='button';
+ target.className='target asteroidTarget '+(type==='normal'?'':type);
+ target.setAttribute('aria-label',type==='danger'?'Gefährlichen Asteroiden vermeiden':type==='gold'?'Goldenen Asteroiden abschießen':type==='rainbow'?'Regenbogen-Asteroiden abschießen':'Asteroiden abschießen');
+ target.innerHTML=asteroidMarkup(type);
 
- if(r<goldChance)type="gold";
- else if(r<goldChance+.04)type="rainbow";
- else if(r<goldChance+.14)type="danger";
-
- target.className="target";
-
- if(type==="gold")target.classList.add("gold");
- if(type==="rainbow")target.classList.add("rainbow");
- if(type==="danger")target.classList.add("danger");
-
- target.textContent=
-  type==="gold"?"★":
-  type==="rainbow"?"🌈":
-  type==="danger"?"💣":"●";
-
- const maxX=Math.max(0,arena.clientWidth-55);
- const maxY=Math.max(0,arena.clientHeight-55);
-
- target.style.left=Math.random()*maxX+"px";
- target.style.top=Math.random()*maxY+"px";
-
- target.onclick=()=>{
-
-  if(!challengeActive)return;
-
-  if(type==="danger"){
-
-   combo=0;
-
-   message="💣 Falsches Ziel! Deine Combo wurde zurückgesetzt.";
-
-   clearTarget();
-
-   $("combo").textContent=1;
-
-   render();
-
-   return;
-
-  }
-
-  let base=
-   type==="gold"?25:
-   type==="rainbow"?100:5;
-
-  combo++;
-  challengeHits++;
-  s.totalHits++;
-
-  if(type==="gold")s.goldHits++;
-  if(type==="rainbow")s.rainbowHits++;
-
-  s.bestCombo=Math.max(s.bestCombo,combo);
-
-  const bonus=1+Math.min(combo-1,20)*.1;
-
-  const reward=clickPower()*base*bonus;
-
-  earn(reward);
-  roundScore+=reward;
-
-  showFloat("+"+fmt(reward),target.offsetLeft,target.offsetTop);
-
-  if(type==="gold")message="🌟 GOLDTREFFER! Richtig abgeräumt!";
-  else if(type==="rainbow")message="🌈 REGENBOGEN! Unglaubliche Belohnung!";
-  else message="Treffer! Weiter so!";
-
-  clearTarget();
-
-  $("hits").textContent=challengeHits;
-  $("combo").textContent=combo;
-  $("roundScore").textContent=fmt(roundScore);
-
-  checkAchievements();
-  render();
-
- };
-
+ const size=54;
+ const maxX=Math.max(0,arena.clientWidth-size);
+ const maxY=Math.max(0,arena.clientHeight-size);
+ const x=Math.random()*maxX;
+ const y=Math.random()*maxY;
+ target.style.left=x+'px';
+ target.style.top=y+'px';
  arena.append(target);
 
- currentTarget=target;
+ const angle=Math.random()*Math.PI*2;
+ const speed=25+Math.random()*45;
+ const item={element:target,type,x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,size,timeout:null};
+ arenaTargets.push(item);
+ if(!currentTarget)currentTarget=target;
 
- targetTimeout=setTimeout(()=>{
+ target.addEventListener('click',()=>{
+  if(!challengeActive||!target.isConnected)return;
+  const rect=target.getBoundingClientRect();
+  const arenaRect=arena.getBoundingClientRect();
+  const cx=rect.left-arenaRect.left+rect.width/2;
+  const cy=rect.top-arenaRect.top+rect.height/2;
+  createAsteroidShot(arena.clientWidth/2,arena.clientHeight-8,cx,cy);
 
-  if(currentTarget===target){
-
-   clearTarget();
-
+  if(type==='danger'){
    combo=0;
-
-   $("combo").textContent=1;
-
+   message='💥 Gefährlicher Brocken! Deine Combo wurde zurückgesetzt.';
+   createAsteroidExplosion(cx,cy,'#ff6868');
+  }else{
+   const base=type==='gold'?25:type==='rainbow'?100:5;
+   combo++;
+   challengeHits++;
+   s.totalHits++;
+   if(type==='gold')s.goldHits++;
+   if(type==='rainbow')s.rainbowHits++;
+   s.bestCombo=Math.max(s.bestCombo,combo);
+   const bonus=1+Math.min(combo-1,20)*.1;
+   const reward=clickPower()*base*bonus;
+   earn(reward);
+   roundScore+=reward;
+   createAsteroidExplosion(cx,cy,type==='gold'?'#ffd45c':type==='rainbow'?'#c69cff':'#a5f279');
+   showFloat('+'+fmt(reward),cx,cy);
+   if(type==='gold')message='🌟 Gold-Asteroid zerlegt! Riesiger Bonus!';
+   else if(type==='rainbow')message='🌈 Kosmischer Asteroid! Unglaubliche Belohnung!';
+   else message='☄️ Asteroid abgeschossen!';
   }
 
- },1100);
+  clearTimeout(item.timeout);
+  target.remove();
+  arenaTargets=arenaTargets.filter(t=>t!==item);
+  currentTarget=arenaTargets[0]?.element||null;
+  $('hits').textContent=challengeHits;
+  $('combo').textContent=combo||1;
+  $('roundScore').textContent=fmt(roundScore);
+  checkAchievements();
+  render();
+ });
 
+ // Asteroiden verschwinden nach einigen Sekunden, wenn sie nicht getroffen werden.
+ item.timeout=setTimeout(()=>{
+  if(!target.isConnected)return;
+  target.remove();
+  arenaTargets=arenaTargets.filter(t=>t!==item);
+  currentTarget=arenaTargets[0]?.element||null;
+  combo=0;
+  $('combo').textContent=1;
+ },4200);
+}
+
+function animateAsteroids(timestamp){
+ if(!challengeActive)return;
+ const delta=Math.min((timestamp-(arenaLastFrame||timestamp))/1000,.05);
+ arenaLastFrame=timestamp;
+ const arena=$('arena');
+ const maxX=Math.max(0,arena.clientWidth-54);
+ const maxY=Math.max(0,arena.clientHeight-54);
+ for(const item of arenaTargets){
+  item.x+=item.vx*delta;
+  item.y+=item.vy*delta;
+  if(item.x<0||item.x>maxX){item.vx*=-1;item.x=Math.max(0,Math.min(maxX,item.x));}
+  if(item.y<0||item.y>maxY){item.vy*=-1;item.y=Math.max(0,Math.min(maxY,item.y));}
+  item.element.style.left=item.x+'px';
+  item.element.style.top=item.y+'px';
+ }
+ arenaAnimation=requestAnimationFrame(animateAsteroids);
+}
+
+function createAsteroidShot(x1,y1,x2,y2){
+ const arena=$('arena');
+ const beam=document.createElement('div');
+ beam.className='asteroidShot';
+ const dx=x2-x1,dy=y2-y1;
+ beam.style.left=x1+'px';beam.style.top=y1+'px';
+ beam.style.width=Math.hypot(dx,dy)+'px';
+ beam.style.transform=`rotate(${Math.atan2(dy,dx)}rad)`;
+ arena.append(beam);
+ setTimeout(()=>beam.remove(),180);
+}
+
+function createAsteroidExplosion(x,y,color){
+ const boom=document.createElement('div');
+ boom.className='asteroidExplosion';
+ boom.style.left=(x-11)+'px';boom.style.top=(y-11)+'px';
+ boom.style.borderColor=color;
+ $('arena').append(boom);
+ setTimeout(()=>boom.remove(),420);
 }
 
 function showFloat(text,x,y){
-
- const el=document.createElement("div");
-
- el.className="floatText";
- el.textContent=text;
-
- el.style.left=x+"px";
- el.style.top=y+"px";
-
- $("arena").append(el);
-
+ const el=document.createElement('div');
+ el.className='floatText';el.textContent=text;
+ el.style.left=x+'px';el.style.top=y+'px';
+ $('arena').append(el);
  setTimeout(()=>el.remove(),850);
-
 }
 
 /* CHALLENGE */
-
 function startChallenge(){
-
  if(challengeActive)return;
-
  challengeActive=true;
-
- challengeTime=15;
- challengeHits=0;
- roundScore=0;
- combo=0;
-
- $("hits").textContent=0;
- $("combo").textContent=1;
- $("roundScore").textContent=0;
- $("timer").textContent=15;
-
- $("arenaMessage").style.display="none";
-
- $("startChallenge").disabled=true;
-
- $("startChallenge").textContent="🏃 Challenge läuft!";
-
- $("timeBar").style.width="100%";
-
- message="Die Challenge beginnt! Ziele anklicken!";
-
+ challengeTime=15;challengeHits=0;roundScore=0;combo=0;
+ arenaLastFrame=0;
+ $('hits').textContent=0;$('combo').textContent=1;$('roundScore').textContent=0;$('timer').textContent=15;
+ $('arenaMessage').style.display='none';
+ $('startChallenge').disabled=true;
+ $('startChallenge').textContent='☄️ Asteroiden-Abwehr läuft!';
+ $('timeBar').style.width='100%';
+ message='Asteroidenalarm! Schieße die Brocken ab!';
  render();
-
- spawnTarget();
-
- spawnInterval=setInterval(spawnTarget,750);
-
+ clearTarget();
+ for(let i=0;i<3;i++)spawnTarget();
+ spawnInterval=setInterval(spawnTarget,650);
+ arenaAnimation=requestAnimationFrame(animateAsteroids);
  challengeInterval=setInterval(()=>{
-
   challengeTime--;
-
-  $("timer").textContent=challengeTime;
-
-  $("timeBar").style.width=(challengeTime/15*100)+"%";
-
+  $('timer').textContent=challengeTime;
+  $('timeBar').style.width=(challengeTime/15*100)+'%';
   if(challengeTime<=0)finishChallenge();
-
  },1000);
-
 }
 
 function finishChallenge(){
-
  if(!challengeActive)return;
-
  challengeActive=false;
-
- clearInterval(challengeInterval);
- clearInterval(spawnInterval);
-
+ clearInterval(challengeInterval);clearInterval(spawnInterval);
  clearTarget();
-
+ if(arenaAnimation){cancelAnimationFrame(arenaAnimation);arenaAnimation=null;}
  s.challenges++;
-
- $("arenaMessage").style.display="grid";
-
- $("arenaMessage").innerHTML=`
-  <div>
-   <strong>🏁 Runde beendet!</strong><br>
-   Du hast ${challengeHits} Ziele getroffen.<br>
-   <span style="color:var(--gold)">
-   +${fmt(roundScore)} Punkte gesammelt!</span>
-  </div>
- `;
-
- $("startChallenge").disabled=false;
-
- $("startChallenge").textContent="🚀 Neue Runde starten";
-
- combo=0;
-
- $("combo").textContent=1;
-
- message="Challenge beendet! Deine Punkte wurden gutgeschrieben.";
-
- checkAchievements();
- render();
-
+ $('arenaMessage').style.display='grid';
+ $('arenaMessage').innerHTML=`<div><strong>🏁 Sektor gesichert!</strong><br>Du hast ${challengeHits} Asteroiden getroffen.<br><span style="color:var(--gold)">+${fmt(roundScore)} Punkte gesammelt!</span></div>`;
+ $('startChallenge').disabled=false;
+ $('startChallenge').textContent='🚀 Neue Runde starten';
+ combo=0;$('combo').textContent=1;
+ message='Asteroiden-Abwehr beendet! Deine Punkte wurden gutgeschrieben.';
+ checkAchievements();render();
 }
 
-$("startChallenge").onclick=startChallenge;
+$('startChallenge').onclick=startChallenge;
 
-/* ÜBUNGSZIEL */
-
-$("practice").onclick=()=>{
-
- if(challengeActive){
-
-  message="Beende erst deine laufende Challenge.";
-
-  render();
-
-  return;
-
- }
-
- const arena=$("arena");
-
- const old=arena.querySelector(".practiceTarget");
-
+/* ÜBUNGS-ASTEROID */
+$('practice').onclick=()=>{
+ if(challengeActive){message='Beende erst deine laufende Challenge.';render();return;}
+ const arena=$('arena');
+ const old=arena.querySelector('.practiceTarget');
  if(old)old.remove();
-
- const target=document.createElement("button");
-
- target.className="target practiceTarget";
-
- target.textContent="🎯";
-
- target.style.left=Math.random()*Math.max(0,arena.clientWidth-55)+"px";
-
- target.style.top=Math.random()*Math.max(0,arena.clientHeight-55)+"px";
-
- target.onclick=()=>{
-
-  const reward=clickPower()*3;
-
-  earn(reward);
-
-  s.totalHits++;
-
-  target.remove();
-
-  message="Übungstreffer! +"+fmt(reward)+" Punkte.";
-
-  checkAchievements();
-  render();
-
- };
-
+ clearTimeout(practiceTimeout);
+ const target=document.createElement('button');
+ target.type='button';target.className='target asteroidTarget practiceTarget';
+ target.setAttribute('aria-label','Übungs-Asteroid abschießen');
+ target.innerHTML=asteroidMarkup('normal');
+ target.style.left=Math.random()*Math.max(0,arena.clientWidth-58)+'px';
+ target.style.top=Math.random()*Math.max(0,arena.clientHeight-58)+'px';
  arena.append(target);
-
- $("arenaMessage").style.display="none";
-
- setTimeout(()=>{
-
+ $('arenaMessage').style.display='none';
+ target.onclick=()=>{
+  const rect=target.getBoundingClientRect(),ar=arena.getBoundingClientRect();
+  const x=rect.left-ar.left+rect.width/2,y=rect.top-ar.top+rect.height/2;
+  createAsteroidShot(arena.clientWidth/2,arena.clientHeight-8,x,y);
+  createAsteroidExplosion(x,y,'#a5f279');
+  const reward=clickPower()*3;earn(reward);s.totalHits++;
+  target.remove();message='Übungs-Asteroid abgeschossen! +'+fmt(reward)+' Punkte.';
+  checkAchievements();render();
+  $('arenaMessage').style.display='grid';
+  $('arenaMessage').innerHTML='<div><strong>Treffer!</strong><br>Bereit für die nächste Runde?</div>';
+ };
+ practiceTimeout=setTimeout(()=>{
   if(target.isConnected)target.remove();
-
-  if(!challengeActive&&!arena.querySelector(".practiceTarget")){
-
-   $("arenaMessage").style.display="grid";
-
-   $("arenaMessage").innerHTML=`
-    <div><strong>Gut gezielt!</strong><br>
-    Bereit für die nächste Runde?</div>
-   `;
-
+  if(!challengeActive&&!arena.querySelector('.practiceTarget')){
+   $('arenaMessage').style.display='grid';
+   $('arenaMessage').innerHTML='<div><strong>Übung beendet</strong><br>Starte die Challenge für ein ganzes Asteroidenfeld.</div>';
   }
-
- },3000);
-
+ },4500);
 };
 
 /* EVENTS */
