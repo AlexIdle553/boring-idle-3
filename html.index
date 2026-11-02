@@ -1,1 +1,1997 @@
-# boring-idle-3
+```html
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Boring Idle 2.0 — Arcade Edition</title>
+
+<style>
+:root{
+ --bg:#101114;
+ --panel:#1b1d22;
+ --line:#343740;
+ --green:#a5f279;
+ --gold:#ffd45c;
+ --red:#ff6868;
+ --purple:#c69cff;
+ --muted:#a2a6b0;
+}
+
+*{box-sizing:border-box}
+
+body{
+ margin:0;
+ background:radial-gradient(ellipse at top,#252f29,#101114 65%);
+ color:#f2f3ef;
+ font:16px system-ui,sans-serif;
+ min-height:100vh;
+ overflow-x:hidden;
+}
+
+#particles{
+ position:fixed;
+ inset:0;
+ width:100%;
+ height:100%;
+ pointer-events:none;
+ z-index:0;
+}
+
+main{
+ position:relative;
+ z-index:1;
+ width:min(850px,94%);
+ margin:30px auto;
+ padding-bottom:50px;
+}
+
+header{text-align:center;margin-bottom:25px}
+
+h1{
+ font-size:clamp(30px,7vw,48px);
+ margin:0;
+ color:var(--green);
+ letter-spacing:-2px;
+}
+
+.sub{color:var(--muted);margin:8px}
+
+.panel{
+ background:rgba(27,29,34,.94);
+ border:1px solid var(--line);
+ border-radius:18px;
+ padding:20px;
+ margin:14px 0;
+ box-shadow:0 8px 30px #0003;
+}
+
+h2{margin-top:0}
+
+.stats{
+ display:grid;
+ grid-template-columns:1fr 1fr;
+ gap:12px;
+}
+
+.stat{
+ background:#111216;
+ border-radius:12px;
+ padding:15px;
+}
+
+.label{
+ font-size:12px;
+ text-transform:uppercase;
+ letter-spacing:1px;
+ color:var(--muted);
+}
+
+.value{
+ font-size:clamp(24px,5vw,34px);
+ font-weight:800;
+ color:var(--green);
+ overflow-wrap:anywhere;
+}
+
+button{
+ font:inherit;
+ cursor:pointer;
+ border:1px solid #444851;
+ background:#292c33;
+ color:white;
+ border-radius:11px;
+ padding:12px 15px;
+ transition:.15s;
+}
+
+button:hover:not(:disabled){
+ border-color:var(--green);
+ transform:translateY(-2px);
+}
+
+button:disabled{
+ opacity:.4;
+ cursor:not-allowed;
+}
+
+.primary{
+ background:var(--green);
+ color:#172012;
+ border:0;
+ font-weight:800;
+}
+
+.clicker{
+ width:100%;
+ padding:25px 10px;
+ font-size:23px;
+ margin-top:15px;
+}
+
+.upgrade{
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ gap:12px;
+ padding:14px 0;
+ border-bottom:1px solid var(--line);
+}
+
+.upgrade:last-child{border:0}
+
+.desc{font-weight:700}
+
+.detail{
+ font-size:13px;
+ color:var(--muted);
+ margin-top:4px;
+}
+
+.buy{
+ white-space:nowrap;
+ min-width:112px;
+}
+
+.bar{
+ height:9px;
+ background:#363840;
+ border-radius:8px;
+ overflow:hidden;
+ margin-top:12px;
+}
+
+.bar div{
+ height:100%;
+ background:var(--green);
+ width:0%;
+ transition:width .2s;
+}
+
+small,.muted{color:var(--muted)}
+
+#log{
+ min-height:24px;
+ color:var(--green);
+}
+
+footer{
+ text-align:center;
+ font-size:12px;
+ color:var(--muted);
+ margin-top:22px;
+}
+
+/* ARENA */
+
+.arena{
+ height:290px;
+ position:relative;
+ overflow:hidden;
+ border:1px solid #424a42;
+ border-radius:16px;
+ background:
+ radial-gradient(circle at 50% 50%,#293b2a 0%,#151c19 65%,#101216 100%);
+}
+
+.arena:before{
+ content:"";
+ position:absolute;
+ inset:0;
+ pointer-events:none;
+ background-image:
+ linear-gradient(#ffffff08 1px,transparent 1px),
+ linear-gradient(90deg,#ffffff08 1px,transparent 1px);
+ background-size:25px 25px;
+}
+
+.arenaInfo{
+ display:flex;
+ justify-content:space-between;
+ gap:8px;
+ flex-wrap:wrap;
+ margin-bottom:12px;
+}
+
+.target{
+ position:absolute;
+ width:48px;
+ height:48px;
+ border-radius:50%;
+ border:3px solid white;
+ background:var(--green);
+ color:#172012;
+ font-size:23px;
+ font-weight:900;
+ display:grid;
+ place-items:center;
+ box-shadow:0 0 18px #a5f27999;
+ animation:pop .2s ease-out,pulse 1s infinite alternate;
+ z-index:2;
+ padding:0;
+}
+
+.target.gold{
+ background:var(--gold);
+ border-color:white;
+ color:#493600;
+ box-shadow:0 0 25px #ffd45c;
+}
+
+.target.rainbow{
+ background:linear-gradient(135deg,#ff5c5c,#ffd45c,#a5f279,#5ccaff,#c69cff);
+ color:#151515;
+ box-shadow:0 0 30px #c69cff;
+}
+
+.target.danger{
+ background:var(--red);
+ color:#400000;
+ box-shadow:0 0 20px #ff686899;
+}
+
+@keyframes pop{
+ from{transform:scale(0)}
+ to{transform:scale(1)}
+}
+
+@keyframes pulse{
+ from{filter:brightness(.9)}
+ to{filter:brightness(1.3)}
+}
+
+.arenaMessage{
+ position:absolute;
+ inset:0;
+ display:grid;
+ place-items:center;
+ text-align:center;
+ color:#ffffff88;
+ pointer-events:none;
+ padding:20px;
+}
+
+.arenaMessage strong{
+ color:var(--green);
+ font-size:21px;
+}
+
+.arenaButtons{
+ display:flex;
+ gap:10px;
+ margin-top:12px;
+ flex-wrap:wrap;
+}
+
+.arenaButtons button{flex:1}
+
+.combo{
+ color:var(--gold);
+ font-weight:900;
+ font-size:20px;
+}
+
+.challengeStats{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:8px;
+ margin:12px 0;
+}
+
+.challengeStat{
+ background:#111216;
+ border-radius:10px;
+ padding:10px;
+ text-align:center;
+}
+
+.challengeStat strong{
+ display:block;
+ color:var(--gold);
+ font-size:21px;
+}
+
+.challengeStat span{
+ font-size:11px;
+ color:var(--muted);
+}
+
+/* FLOAT TEXT */
+
+.floatText{
+ position:absolute;
+ pointer-events:none;
+ z-index:5;
+ color:var(--gold);
+ font-weight:900;
+ font-size:20px;
+ animation:floatUp .8s forwards;
+}
+
+@keyframes floatUp{
+ from{opacity:1;transform:translateY(0) scale(1)}
+ to{opacity:0;transform:translateY(-65px) scale(1.4)}
+}
+
+/* ACHIEVEMENTS */
+
+.achievement{
+ display:flex;
+ align-items:center;
+ gap:12px;
+ background:#111216;
+ padding:12px;
+ border-radius:11px;
+ margin:8px 0;
+}
+
+.achievement.locked{
+ opacity:.35;
+ filter:grayscale(1);
+}
+
+.achievement .emoji{font-size:27px}
+
+.achievement small{display:block}
+
+/* EVENTS */
+
+#event{
+ display:none;
+ text-align:center;
+ border:1px solid var(--gold);
+ color:var(--gold);
+ padding:14px;
+ border-radius:12px;
+ background:#ffd45c12;
+ margin-top:12px;
+ animation:pop .3s;
+}
+
+#event button{
+ margin-top:8px;
+ background:var(--gold);
+ color:#322400;
+}
+
+/* STATISTICS */
+
+.statistics{
+ display:grid;
+ grid-template-columns:1fr 1fr;
+ gap:10px;
+}
+
+.statBox{
+ background:#111216;
+ border-radius:10px;
+ padding:12px;
+}
+
+.statBox strong{
+ display:block;
+ font-size:20px;
+ color:var(--green);
+}
+
+.statBox span{
+ font-size:12px;
+ color:var(--muted);
+}
+
+/* PRESTIGE */
+
+.prestigeUpgrade{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:12px;
+ padding:12px 0;
+ border-bottom:1px solid var(--line);
+}
+
+/* RESPONSIVE */
+
+@media(max-width:460px){
+ main{margin-top:20px}
+ .panel{padding:15px}
+ .upgrade{align-items:flex-start}
+ .buy{min-width:100px;padding:10px 8px}
+ .value{font-size:24px}
+ .arena{height:250px}
+ .statistics{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="particles"></canvas>
+
+<main>
+
+<header>
+ <h1>💤 BORING IDLE 2.0</h1>
+ <p class="sub">Arcade Edition – Nichts leisten. Reich werden. Irgendwann.</p>
+</header>
+
+<!-- HAUPTSTATS -->
+
+<section class="panel">
+
+ <div class="stats">
+
+  <div class="stat">
+   <div class="label">Langeweile-Punkte</div>
+   <div class="value" id="points">0</div>
+  </div>
+
+  <div class="stat">
+   <div class="label">Einkommen / Sek.</div>
+   <div class="value" id="income">0</div>
+  </div>
+
+  <div class="stat">
+   <div class="label">Klickstärke</div>
+   <div class="value" id="power">1</div>
+  </div>
+
+  <div class="stat">
+   <div class="label">Lebenszeit verschwendet</div>
+   <div class="value" id="lifetime">0</div>
+  </div>
+
+ </div>
+
+ <button class="primary clicker" id="click">
+ 🖱️ Hier klicken, um produktiv zu wirken
+ </button>
+
+ <p class="muted" style="text-align:center;font-size:13px">
+ Du darfst auch einfach gar nichts tun.
+ </p>
+
+</section>
+
+<!-- STATISTIK -->
+
+<section class="panel">
+
+ <h2>📊 Deine Statistiken</h2>
+
+ <div class="statistics">
+
+  <div class="statBox">
+   <strong id="statClicks">0</strong>
+   <span>Gesamte Klicks</span>
+  </div>
+
+  <div class="statBox">
+   <strong id="statHits">0</strong>
+   <span>Arena-Treffer</span>
+  </div>
+
+  <div class="statBox">
+   <strong id="statBuildings">0</strong>
+   <span>Gebäude insgesamt</span>
+  </div>
+
+  <div class="statBox">
+   <strong id="statPrestige">0</strong>
+   <span>Prestige-Level</span>
+  </div>
+
+  <div class="statBox">
+   <strong id="statPlaytime">0</strong>
+   <span>Spielzeit</span>
+  </div>
+
+  <div class="statBox">
+   <strong id="statHighestIncome">0</strong>
+   <span>Höchstes Einkommen/Sek.</span>
+  </div>
+
+ </div>
+
+</section>
+
+<!-- ARENA -->
+
+<section class="panel">
+
+ <h2>🎯 Die Klick-Arena</h2>
+
+ <p class="muted">
+ Klicke die erscheinenden Ziele an! Goldene und Regenbogen-Ziele bringen besonders viele Punkte.
+ </p>
+
+ <div class="arenaInfo">
+
+  <span>⏱️ Zeit: <strong id="timer">15</strong> Sekunden</span>
+
+  <span>⭐ Treffer: <strong id="hits">0</strong></span>
+
+  <span class="combo">🔥 Combo x<span id="combo">1</span></span>
+
+ </div>
+
+ <div class="arena" id="arena">
+
+  <div class="arenaMessage" id="arenaMessage">
+
+   <div>
+    <strong>Bereit für die Challenge?</strong>
+    <br>
+    Starte und sammle so viele Punkte wie möglich!
+   </div>
+
+  </div>
+
+ </div>
+
+ <div class="bar">
+  <div id="timeBar"></div>
+ </div>
+
+ <div class="challengeStats">
+
+  <div class="challengeStat">
+   <strong id="roundScore">0</strong>
+   <span>Rundenpunkte</span>
+  </div>
+
+  <div class="challengeStat">
+   <strong id="bestCombo">0</strong>
+   <span>Bester Combo</span>
+  </div>
+
+  <div class="challengeStat">
+   <strong id="totalHits">0</strong>
+   <span>Treffer insgesamt</span>
+  </div>
+
+ </div>
+
+ <div class="arenaButtons">
+
+  <button class="primary" id="startChallenge">
+   🚀 Challenge starten
+  </button>
+
+  <button id="practice">
+   🎯 Übungsziel
+  </button>
+
+ </div>
+
+ <p class="muted" style="font-size:12px">
+ Normales Ziel: 5 × Klickstärke · Gold: 25 × · Regenbogen: 100 × · Rotes Ziel: vermeiden!
+ </p>
+
+</section>
+
+<!-- UPGRADES -->
+
+<section class="panel">
+
+ <h2>🏢 Dein Imperium der Nutzlosigkeit</h2>
+
+ <div id="upgrades"></div>
+
+</section>
+
+<!-- EVENTS -->
+
+<section class="panel">
+
+ <h2>🎁 Zufällige Ereignisse</h2>
+
+ <p class="muted">
+ Manchmal passiert etwas. Meistens nichts. Aber manchmal lohnt es sich!
+ </p>
+
+ <div id="event">
+
+  <strong id="eventTitle">BONUS!</strong>
+
+  <p id="eventDesc"></p>
+
+  <button id="eventClaim">Bonus einsammeln</button>
+
+ </div>
+
+ <p id="eventStatus" class="muted">
+ Das Universum würfelt gerade ...
+ </p>
+
+</section>
+
+<!-- ERFOLGE -->
+
+<section class="panel">
+
+ <h2>🏆 Deine Erfolge</h2>
+
+ <p class="muted">
+ Schalte Auszeichnungen durch deine Aktionen frei.
+ </p>
+
+ <div id="achievements"></div>
+
+</section>
+
+<!-- PRESTIGE -->
+
+<section class="panel">
+
+ <h2>🌌 Prestige: Ewige Langeweile</h2>
+
+ <p class="muted">
+ Setze deinen Fortschritt zurück und erhalte Seelen der Langeweile.
+ Diese kannst du für permanente Verbesserungen ausgeben.
+ </p>
+
+ <div id="prestigeInfo"></div>
+
+ <button class="primary" id="prestige" style="width:100%;margin-top:12px">
+ Prestige aktivieren
+ </button>
+
+ <h3>👻 Permanente Verbesserungen</h3>
+
+ <div id="prestigeUpgrades"></div>
+
+</section>
+
+<!-- SAVE -->
+
+<section class="panel">
+
+ <div class="label">Letzte Systemmeldung</div>
+
+ <p id="log">
+ Du bist online. Das ist schon genug Arbeit für heute.
+ </p>
+
+ <button id="save">💾 Spielstand sichern</button>
+
+ <button id="export">📤 Spielstand exportieren</button>
+
+ <button id="importButton">📥 Spielstand importieren</button>
+
+ <input type="file" id="importFile" accept=".json" style="display:none">
+
+ <button id="reset" style="float:right">Neustart</button>
+
+</section>
+
+<footer>
+ Boring Idle 2.0 · Dein Fortschritt wird lokal in diesem Browser gespeichert.
+</footer>
+
+</main>
+
+<script>
+
+"use strict";
+
+const $=id=>document.getElementById(id);
+const fmt=n=>Math.floor(n).toLocaleString("de-DE");
+
+const SAVE_KEY="boring-idle-save";
+const SAVE_VERSION=2;
+
+/* GEBÄUDE */
+
+const definitions=[
+
+ {name:"Praktikant",desc:"Tut so, als würde er arbeiten.",base:15,rate:.2},
+
+ {name:"Kaffeemaschine",desc:"Hält die Praktikanten am Leben.",base:75,rate:1.5},
+
+ {name:"Excel-Tabelle",desc:"Automatisiert vollkommen sinnlose Arbeit.",base:350,rate:7},
+
+ {name:"Mittleres Management",desc:"Verwaltet die anderen beim Nichtstun.",base:1800,rate:35},
+
+ {name:"Serverfarm",desc:"Verbrennt Strom für deinen Kontostand.",base:10000,rate:180},
+
+ {name:"KI-Langeweile-Roboter",desc:"Lernt, wie man nichts tut.",base:60000,rate:1000},
+
+ {name:"Mondbüro",desc:"Niemand weiß, warum es existiert.",base:400000,rate:6500},
+
+ {name:"🛋️ Sofa",desc:"Auf dem Sofa lässt es sich gut nichts tun.",base:2000,rate:50},
+
+ {name:"📺 Fernseher",desc:"Sendet stundenlang sinnlose Unterhaltung.",base:15000,rate:300},
+
+ {name:"🏢 Bürokomplex",desc:"Beschäftigt Menschen mit Beschäftigung.",base:100000,rate:2500},
+
+ {name:"🛸 Alien-Büro",desc:"Außerirdische verwalten deine Langeweile.",base:1000000,rate:25000},
+
+ {name:"🌌 Schwarzes Loch",desc:"Verschlingt Produktivität und erzeugt Punkte.",base:50000000,rate:1000000}
+
+];
+
+/* PRESTIGE UPGRADES */
+
+const prestigeDefinitions=[
+
+ {
+  id:"eternalMouse",
+  name:"🖱️ Ewige Maus",
+  desc:"Klickstärke dauerhaft +25 %",
+  cost:1,
+  effect:()=>permanentClickMultiplier*=1.25
+ },
+
+ {
+  id:"timeDilation",
+  name:"⏳ Zeitdehnung",
+  desc:"Offline-Einkommen dauerhaft +10 %",
+  cost:2,
+  effect:()=>offlineMultiplier+=.1
+ },
+
+ {
+  id:"goldenFuture",
+  name:"🌟 Goldene Zukunft",
+  desc:"Goldene Ziele erscheinen häufiger.",
+  cost:3,
+  effect:()=>goldChance+=.05
+ },
+
+ {
+  id:"cosmicBoredom",
+  name:"🌌 Kosmische Faulheit",
+  desc:"Gesamte Produktion dauerhaft +15 %",
+  cost:5,
+  effect:()=>globalMultiplier*=1.15
+ }
+
+];
+
+/* ERFOLGE */
+
+const achievementDefs=[
+
+ {id:"first",icon:"🖱️",name:"Erster Klick",desc:"Klicke zum ersten Mal.",test:s=>s.totalClicks>=1},
+
+ {id:"hundred",icon:"💯",name:"Klickmaschine",desc:"100 normale Klicks ausführen.",test:s=>s.totalClicks>=100},
+
+ {id:"rich",icon:"💰",name:"Kleines Vermögen",desc:"10.000 Lebenszeit-Punkte verdienen.",test:s=>s.lifetime>=10000},
+
+ {id:"hit10",icon:"🎯",name:"Zielsicher",desc:"10 Arena-Treffer erzielen.",test:s=>s.totalHits>=10},
+
+ {id:"combo10",icon:"🔥",name:"Combo-König",desc:"Eine Combo von 10 erreichen.",test:s=>s.bestCombo>=10},
+
+ {id:"gold",icon:"🌟",name:"Goldgräber",desc:"Eine goldene Kugel treffen.",test:s=>s.goldHits>=1},
+
+ {id:"challenge",icon:"🏁",name:"Wettkämpfer",desc:"Eine Challenge abschließen.",test:s=>s.challenges>=1},
+
+ {id:"prestige",icon:"🌌",name:"Neuanfang",desc:"Prestige aktivieren.",test:s=>s.prestige>=1},
+
+ {id:"millionaire",icon:"💎",name:"Millionär",desc:"1 Million Punkte besitzen.",test:s=>s.points>=1000000},
+
+ {id:"build100",icon:"🏭",name:"Großindustrieller",desc:"100 Gebäude besitzen.",test:s=>s.owned.reduce((a,b)=>a+b,0)>=100},
+
+ {id:"prestige10",icon:"♾️",name:"Multiversum",desc:"Prestige-Level 10 erreichen.",test:s=>s.prestige>=10}
+
+];
+
+/* SPIELSTAND */
+
+const fresh=()=>({
+
+ version:SAVE_VERSION,
+
+ points:0,
+ lifetime:0,
+
+ clickLevel:0,
+ boostLevel:0,
+
+ owned:Array(definitions.length).fill(0),
+
+ prestige:0,
+ prestigeSouls:0,
+ spentSouls:0,
+
+ permanentUpgrades:[],
+
+ last:Date.now(),
+
+ totalClicks:0,
+ totalHits:0,
+ goldHits:0,
+ rainbowHits:0,
+
+ bestCombo:0,
+ challenges:0,
+
+ achievements:[],
+
+ playtime:0,
+ highestIncome:0
+
+});
+
+let s;
+
+try{
+
+ const saved=localStorage.getItem(SAVE_KEY);
+
+ s=saved?JSON.parse(saved):fresh();
+
+}catch{
+
+ s=fresh();
+
+}
+
+/* MIGRATION */
+
+function normalize(){
+
+ const d=fresh();
+
+ s={...d,...s};
+
+ s.owned=definitions.map((_,i)=>
+  Math.max(0,Number(s.owned?.[i])||0)
+ );
+
+ [
+  "points",
+  "lifetime",
+  "prestige",
+  "prestigeSouls",
+  "spentSouls",
+  "clickLevel",
+  "boostLevel",
+  "totalClicks",
+  "totalHits",
+  "goldHits",
+  "rainbowHits",
+  "bestCombo",
+  "challenges",
+  "playtime",
+  "highestIncome"
+ ].forEach(k=>{
+
+  s[k]=Math.max(0,Number(s[k])||0);
+
+ });
+
+ s.achievements=Array.isArray(s.achievements)?s.achievements:[];
+
+ s.permanentUpgrades=Array.isArray(s.permanentUpgrades)?s.permanentUpgrades:[];
+
+ s.last=Number(s.last)||Date.now();
+
+ s.version=SAVE_VERSION;
+
+}
+
+normalize();
+
+/* MULTIPLIKATOREN */
+
+let permanentClickMultiplier=1;
+let offlineMultiplier=1;
+let goldChance=.17;
+let globalMultiplier=1;
+
+function applyPermanentUpgrades(){
+
+ permanentClickMultiplier=1;
+ offlineMultiplier=1;
+ goldChance=.17;
+ globalMultiplier=1;
+
+ prestigeDefinitions.forEach(u=>{
+
+  if(s.permanentUpgrades.includes(u.id)){
+
+   u.effect();
+
+  }
+
+ });
+
+}
+
+applyPermanentUpgrades();
+
+/* SPIELVARIABLEN */
+
+let message="Du bist online. Das ist schon genug Arbeit für heute.";
+
+let challengeActive=false;
+
+let challengeTime=15;
+let challengeHits=0;
+let roundScore=0;
+let combo=0;
+
+let challengeInterval=null;
+let spawnInterval=null;
+let targetTimeout=null;
+
+let currentTarget=null;
+
+let eventActive=false;
+let eventReward=0;
+
+/* BERECHNUNGEN */
+
+function multiplier(){
+
+ return (1+s.prestige*.25)
+ *Math.pow(2,s.boostLevel)
+ *globalMultiplier;
+
+}
+
+function income(){
+
+ return definitions.reduce((a,d,i)=>
+  a+d.rate*s.owned[i],0
+ )*multiplier();
+
+}
+
+function clickPower(){
+
+ return Math.pow(2,s.clickLevel)
+ *multiplier()
+ *permanentClickMultiplier;
+
+}
+
+function clickCost(){
+
+ return Math.floor(20*Math.pow(2.1,s.clickLevel));
+
+}
+
+function boostCost(){
+
+ return Math.floor(500*Math.pow(3,s.boostLevel));
+
+}
+
+function cost(i){
+
+ return Math.floor(
+  definitions[i].base*Math.pow(1.16,s.owned[i])
+ );
+
+}
+
+function prestigeTarget(){
+
+ return Math.floor(10000*Math.pow(3,s.prestige));
+
+}
+
+function buildingCount(){
+
+ return s.owned.reduce((a,b)=>a+b,0);
+
+}
+
+/* PUNKTE VERDIENEN */
+
+function earn(n){
+
+ if(!Number.isFinite(n)||n<=0)return;
+
+ s.points+=n;
+ s.lifetime+=n;
+
+}
+
+/* SPEICHERN */
+
+function save(){
+
+ s.last=Date.now();
+
+ try{
+
+  localStorage.setItem(SAVE_KEY,JSON.stringify(s));
+
+  message="Gespeichert. Deine Sinnlosigkeit ist sicher.";
+
+ }catch{
+
+  message="Speichern nicht möglich. Exportiere deinen Spielstand als Backup.";
+
+ }
+
+ render();
+
+}
+
+/* GEBÄUDE KAUFEN */
+
+function buy(i){
+
+ const c=cost(i);
+
+ if(s.points<c)return;
+
+ s.points-=c;
+ s.owned[i]++;
+
+ message=definitions[i].name+" gekauft. Die Wirtschaft läuft völlig grundlos.";
+
+ checkAchievements();
+ render();
+
+}
+
+/* RENDER */
+
+function render(){
+
+ $("points").textContent=fmt(s.points);
+
+ $("income").textContent=(Math.floor(income()*10)/10).toLocaleString("de-DE");
+
+ $("power").textContent=fmt(clickPower());
+
+ $("lifetime").textContent=fmt(s.lifetime);
+
+ $("log").textContent=message;
+
+ /* GEBÄUDE */
+
+ $("upgrades").innerHTML="";
+
+ definitions.forEach((d,i)=>{
+
+  const c=cost(i);
+
+  const el=document.createElement("div");
+  el.className="upgrade";
+
+  const info=document.createElement("div");
+
+  info.innerHTML=`
+   <div class="desc">${d.name}
+   <span class="muted">× ${s.owned[i]}</span></div>
+
+   <div class="detail">
+   ${d.desc}<br>
+   +${(d.rate*multiplier()).toLocaleString("de-DE")}/Sek.
+   </div>
+  `;
+
+  const b=document.createElement("button");
+
+  b.className="buy";
+  b.disabled=s.points<c;
+
+  b.textContent="Kaufen · "+fmt(c);
+
+  b.onclick=()=>buy(i);
+
+  el.append(info,b);
+
+  $("upgrades").append(el);
+
+ });
+
+ /* KLICK-UPGRADE */
+
+ const extra=document.createElement("div");
+ extra.className="upgrade";
+
+ const ci=document.createElement("div");
+
+ ci.innerHTML=`
+  <div class="desc">🖱️ Bessere Maus · Stufe ${s.clickLevel}</div>
+  <div class="detail">Verdoppelt deine Klickstärke.</div>
+ `;
+
+ const cb=document.createElement("button");
+
+ cb.className="buy";
+ cb.disabled=s.points<clickCost();
+
+ cb.textContent="Kaufen · "+fmt(clickCost());
+
+ cb.onclick=()=>{
+
+  if(s.points>=clickCost()){
+
+   s.points-=clickCost();
+   s.clickLevel++;
+
+   message="Neue Maus gekauft. Sie klickt exakt genauso.";
+
+   render();
+
+  }
+
+ };
+
+ extra.append(ci,cb);
+ $("upgrades").append(extra);
+
+ /* EINKOMMENS-UPGRADE */
+
+ const be=document.createElement("div");
+ be.className="upgrade";
+
+ const bi=document.createElement("div");
+
+ bi.innerHTML=`
+  <div class="desc">📈 Sinnlose Beratung · Stufe ${s.boostLevel}</div>
+  <div class="detail">Verdoppelt alle Einnahmen.</div>
+ `;
+
+ const bb=document.createElement("button");
+
+ bb.className="buy";
+ bb.disabled=s.points<boostCost();
+
+ bb.textContent="Kaufen · "+fmt(boostCost());
+
+ bb.onclick=()=>{
+
+  if(s.points>=boostCost()){
+
+   s.points-=boostCost();
+   s.boostLevel++;
+
+   message="Die Berater haben mehr Wachstum versprochen.";
+
+   render();
+
+  }
+
+ };
+
+ be.append(bi,bb);
+ $("upgrades").append(be);
+
+ /* PRESTIGE */
+
+ $("prestigeInfo").textContent=`
+  Prestige: ${s.prestige}
+  · Bonus: +${s.prestige*25}%
+  · Benötigt: ${fmt(prestigeTarget())} Lebenszeit-Punkte
+  · Seelen: ${s.prestigeSouls}
+ `;
+
+ $("prestige").disabled=s.lifetime<prestigeTarget();
+
+ /* STATISTIK */
+
+ $("statClicks").textContent=fmt(s.totalClicks);
+
+ $("statHits").textContent=fmt(s.totalHits);
+
+ $("statBuildings").textContent=fmt(buildingCount());
+
+ $("statPrestige").textContent=fmt(s.prestige);
+
+ $("statPlaytime").textContent=formatPlaytime(s.playtime);
+
+ $("statHighestIncome").textContent=fmt(s.highestIncome);
+
+ $("totalHits").textContent=s.totalHits;
+
+ $("bestCombo").textContent=s.bestCombo;
+
+ renderAchievements();
+ renderPrestigeUpgrades();
+
+}
+
+/* SPIELZEIT */
+
+function formatPlaytime(seconds){
+
+ seconds=Math.floor(seconds);
+
+ const h=Math.floor(seconds/3600);
+ const m=Math.floor((seconds%3600)/60);
+ const sec=seconds%60;
+
+ return `${h}h ${m}m ${sec}s`;
+
+}
+
+/* ERFOLGE */
+
+function renderAchievements(){
+
+ const container=$("achievements");
+
+ container.innerHTML="";
+
+ achievementDefs.forEach(a=>{
+
+  const unlocked=s.achievements.includes(a.id);
+
+  const el=document.createElement("div");
+
+  el.className="achievement"+(unlocked?"":" locked");
+
+  el.innerHTML=`
+   <span class="emoji">${a.icon}</span>
+   <div>
+    <strong>${a.name} ${unlocked?"✓":"🔒"}</strong>
+    <small>${a.desc}</small>
+   </div>
+  `;
+
+  container.append(el);
+
+ });
+
+}
+
+function checkAchievements(){
+
+ achievementDefs.forEach(a=>{
+
+  if(!s.achievements.includes(a.id)&&a.test(s)){
+
+   s.achievements.push(a.id);
+
+   message="🏆 Neuer Erfolg: "+a.name+"!";
+
+  }
+
+ });
+
+}
+
+/* KLICK */
+
+$("click").onclick=()=>{
+
+ earn(clickPower());
+
+ s.totalClicks++;
+
+ checkAchievements();
+
+ render();
+
+};
+
+/* ARENA */
+
+function clearTarget(){
+
+ if(currentTarget){
+
+  currentTarget.remove();
+  currentTarget=null;
+
+ }
+
+ clearTimeout(targetTimeout);
+
+}
+
+function spawnTarget(){
+
+ if(!challengeActive||currentTarget)return;
+
+ const arena=$("arena");
+
+ const target=document.createElement("button");
+
+ const r=Math.random();
+
+ let type="normal";
+
+ if(r<goldChance)type="gold";
+ else if(r<goldChance+.04)type="rainbow";
+ else if(r<goldChance+.14)type="danger";
+
+ target.className="target";
+
+ if(type==="gold")target.classList.add("gold");
+ if(type==="rainbow")target.classList.add("rainbow");
+ if(type==="danger")target.classList.add("danger");
+
+ target.textContent=
+  type==="gold"?"★":
+  type==="rainbow"?"🌈":
+  type==="danger"?"💣":"●";
+
+ const maxX=Math.max(0,arena.clientWidth-55);
+ const maxY=Math.max(0,arena.clientHeight-55);
+
+ target.style.left=Math.random()*maxX+"px";
+ target.style.top=Math.random()*maxY+"px";
+
+ target.onclick=()=>{
+
+  if(!challengeActive)return;
+
+  if(type==="danger"){
+
+   combo=0;
+
+   message="💣 Falsches Ziel! Deine Combo wurde zurückgesetzt.";
+
+   clearTarget();
+
+   $("combo").textContent=1;
+
+   render();
+
+   return;
+
+  }
+
+  let base=
+   type==="gold"?25:
+   type==="rainbow"?100:5;
+
+  combo++;
+  challengeHits++;
+  s.totalHits++;
+
+  if(type==="gold")s.goldHits++;
+  if(type==="rainbow")s.rainbowHits++;
+
+  s.bestCombo=Math.max(s.bestCombo,combo);
+
+  const bonus=1+Math.min(combo-1,20)*.1;
+
+  const reward=clickPower()*base*bonus;
+
+  earn(reward);
+  roundScore+=reward;
+
+  showFloat("+"+fmt(reward),target.offsetLeft,target.offsetTop);
+
+  if(type==="gold")message="🌟 GOLDTREFFER! Richtig abgeräumt!";
+  else if(type==="rainbow")message="🌈 REGENBOGEN! Unglaubliche Belohnung!";
+  else message="Treffer! Weiter so!";
+
+  clearTarget();
+
+  $("hits").textContent=challengeHits;
+  $("combo").textContent=combo;
+  $("roundScore").textContent=fmt(roundScore);
+
+  checkAchievements();
+  render();
+
+ };
+
+ arena.append(target);
+
+ currentTarget=target;
+
+ targetTimeout=setTimeout(()=>{
+
+  if(currentTarget===target){
+
+   clearTarget();
+
+   combo=0;
+
+   $("combo").textContent=1;
+
+  }
+
+ },1100);
+
+}
+
+function showFloat(text,x,y){
+
+ const el=document.createElement("div");
+
+ el.className="floatText";
+ el.textContent=text;
+
+ el.style.left=x+"px";
+ el.style.top=y+"px";
+
+ $("arena").append(el);
+
+ setTimeout(()=>el.remove(),850);
+
+}
+
+/* CHALLENGE */
+
+function startChallenge(){
+
+ if(challengeActive)return;
+
+ challengeActive=true;
+
+ challengeTime=15;
+ challengeHits=0;
+ roundScore=0;
+ combo=0;
+
+ $("hits").textContent=0;
+ $("combo").textContent=1;
+ $("roundScore").textContent=0;
+ $("timer").textContent=15;
+
+ $("arenaMessage").style.display="none";
+
+ $("startChallenge").disabled=true;
+
+ $("startChallenge").textContent="🏃 Challenge läuft!";
+
+ $("timeBar").style.width="100%";
+
+ message="Die Challenge beginnt! Ziele anklicken!";
+
+ render();
+
+ spawnTarget();
+
+ spawnInterval=setInterval(spawnTarget,750);
+
+ challengeInterval=setInterval(()=>{
+
+  challengeTime--;
+
+  $("timer").textContent=challengeTime;
+
+  $("timeBar").style.width=(challengeTime/15*100)+"%";
+
+  if(challengeTime<=0)finishChallenge();
+
+ },1000);
+
+}
+
+function finishChallenge(){
+
+ if(!challengeActive)return;
+
+ challengeActive=false;
+
+ clearInterval(challengeInterval);
+ clearInterval(spawnInterval);
+
+ clearTarget();
+
+ s.challenges++;
+
+ $("arenaMessage").style.display="grid";
+
+ $("arenaMessage").innerHTML=`
+  <div>
+   <strong>🏁 Runde beendet!</strong><br>
+   Du hast ${challengeHits} Ziele getroffen.<br>
+   <span style="color:var(--gold)">
+   +${fmt(roundScore)} Punkte gesammelt!</span>
+  </div>
+ `;
+
+ $("startChallenge").disabled=false;
+
+ $("startChallenge").textContent="🚀 Neue Runde starten";
+
+ combo=0;
+
+ $("combo").textContent=1;
+
+ message="Challenge beendet! Deine Punkte wurden gutgeschrieben.";
+
+ checkAchievements();
+ render();
+
+}
+
+$("startChallenge").onclick=startChallenge;
+
+/* ÜBUNGSZIEL */
+
+$("practice").onclick=()=>{
+
+ if(challengeActive){
+
+  message="Beende erst deine laufende Challenge.";
+
+  render();
+
+  return;
+
+ }
+
+ const arena=$("arena");
+
+ const old=arena.querySelector(".practiceTarget");
+
+ if(old)old.remove();
+
+ const target=document.createElement("button");
+
+ target.className="target practiceTarget";
+
+ target.textContent="🎯";
+
+ target.style.left=Math.random()*Math.max(0,arena.clientWidth-55)+"px";
+
+ target.style.top=Math.random()*Math.max(0,arena.clientHeight-55)+"px";
+
+ target.onclick=()=>{
+
+  const reward=clickPower()*3;
+
+  earn(reward);
+
+  s.totalHits++;
+
+  target.remove();
+
+  message="Übungstreffer! +"+fmt(reward)+" Punkte.";
+
+  checkAchievements();
+  render();
+
+ };
+
+ arena.append(target);
+
+ $("arenaMessage").style.display="none";
+
+ setTimeout(()=>{
+
+  if(target.isConnected)target.remove();
+
+  if(!challengeActive&&!arena.querySelector(".practiceTarget")){
+
+   $("arenaMessage").style.display="grid";
+
+   $("arenaMessage").innerHTML=`
+    <div><strong>Gut gezielt!</strong><br>
+    Bereit für die nächste Runde?</div>
+   `;
+
+  }
+
+ },3000);
+
+};
+
+/* EVENTS */
+
+const events=[
+
+ {
+  title:"💰 Geldregen!",
+  desc:"Das Universum schenkt dir einen kleinen Geldsegen.",
+  reward:()=>Math.max(100,clickPower()*50)
+ },
+
+ {
+  title:"⚡ Energie-Boost!",
+  desc:"Deine nächste Belohnung ist besonders großzügig.",
+  reward:()=>Math.max(250,income()*30+clickPower()*20)
+ },
+
+ {
+  title:"🌟 Goldener Moment!",
+  desc:"Ein überraschender Bonus für deine Geduld.",
+  reward:()=>Math.max(500,s.points*.05)
+ }
+
+];
+
+function randomEvent(){
+
+ if(eventActive)return;
+
+ const ev=events[Math.floor(Math.random()*events.length)];
+
+ eventReward=ev.reward();
+
+ eventActive=true;
+
+ $("eventTitle").textContent=ev.title;
+
+ $("eventDesc").textContent=
+  ev.desc+" Bonus: "+fmt(eventReward)+" Punkte.";
+
+ $("event").style.display="block";
+
+ $("eventStatus").textContent="Ein Ereignis wartet auf dich!";
+
+}
+
+$("eventClaim").onclick=()=>{
+
+ if(!eventActive)return;
+
+ earn(eventReward);
+
+ message="Bonus eingesammelt! +"+fmt(eventReward)+" Punkte.";
+
+ eventActive=false;
+
+ $("event").style.display="none";
+
+ $("eventStatus").textContent="Das Universum ist wieder ruhig.";
+
+ render();
+
+};
+
+setInterval(()=>{
+
+ if(!eventActive&&Math.random()<.65){
+
+  randomEvent();
+
+ }
+
+},45000);
+
+/* PRESTIGE */
+
+$("prestige").onclick=()=>{
+
+ const target=prestigeTarget();
+
+ if(s.lifetime<target)return;
+
+ if(!confirm(
+  "Wirklich Prestige aktivieren? Gebäude und normale Upgrades werden zurückgesetzt."
+ ))return;
+
+ const souls=Math.max(1,Math.floor(s.lifetime/target));
+
+ const newPrestige=s.prestige+1;
+
+ const totalSouls=s.prestigeSouls+souls;
+
+ const achievements=[...s.achievements];
+
+ s=fresh();
+
+ s.prestige=newPrestige;
+ s.prestigeSouls=totalSouls;
+
+ s.achievements=achievements;
+
+ applyPermanentUpgrades();
+
+ message=`Prestige aktiviert! Du hast ${souls} Seelen erhalten.`;
+
+ checkAchievements();
+
+ save();
+ render();
+
+};
+
+/* PRESTIGE UPGRADES */
+
+function renderPrestigeUpgrades(){
+
+ const container=$("prestigeUpgrades");
+
+ container.innerHTML="";
+
+ prestigeDefinitions.forEach(u=>{
+
+  const bought=s.permanentUpgrades.includes(u.id);
+
+  const el=document.createElement("div");
+
+  el.className="prestigeUpgrade";
+
+  const info=document.createElement("div");
+
+  info.innerHTML=`
+   <div class="desc">${u.name}</div>
+   <div class="detail">${u.desc}</div>
+  `;
+
+  const b=document.createElement("button");
+
+  b.className="buy";
+
+  b.disabled=bought||s.prestigeSouls-s.spentSouls<u.cost;
+
+  b.textContent=bought?"Gekauft ✓":"👻 "+u.cost+" Seelen";
+
+  b.onclick=()=>{
+
+   if(bought)return;
+
+   if(s.prestigeSouls-s.spentSouls<u.cost)return;
+
+   s.spentSouls+=u.cost;
+
+   s.permanentUpgrades.push(u.id);
+
+   applyPermanentUpgrades();
+
+   message="Permanentes Upgrade freigeschaltet!";
+
+   save();
+   render();
+
+  };
+
+  el.append(info,b);
+
+  container.append(el);
+
+ });
+
+}
+
+/* SAVE / EXPORT / IMPORT */
+
+$("save").onclick=save;
+
+$("export").onclick=()=>{
+
+ const blob=new Blob(
+  [JSON.stringify(s,null,2)],
+  {type:"application/json"}
+ );
+
+ const url=URL.createObjectURL(blob);
+
+ const a=document.createElement("a");
+
+ a.href=url;
+ a.download="boring-idle-save.json";
+
+ a.click();
+
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+
+ message="Backup exportiert.";
+
+ render();
+
+};
+
+$("importButton").onclick=()=>{
+
+ $("importFile").click();
+
+};
+
+$("importFile").onchange=async e=>{
+
+ const file=e.target.files[0];
+
+ if(!file)return;
+
+ try{
+
+  const text=await file.text();
+
+  const imported=JSON.parse(text);
+
+  if(!imported||typeof imported!=="object"||!Array.isArray(imported.owned)){
+
+   alert("Ungültiger Spielstand!");
+
+   return;
+
+  }
+
+  if(!confirm("Spielstand importieren? Dein aktueller Fortschritt wird überschrieben."))return;
+
+  s=imported;
+
+  normalize();
+
+  applyPermanentUpgrades();
+
+  save();
+
+  message="Spielstand erfolgreich importiert!";
+
+  render();
+
+ }catch{
+
+  alert("Fehler beim Importieren. Die Datei ist möglicherweise beschädigt.");
+
+ }
+
+};
+
+/* RESET */
+
+$("reset").onclick=()=>{
+
+ if(!confirm("Wirklich den gesamten Spielstand löschen?"))return;
+
+ if(challengeActive)finishChallenge();
+
+ s=fresh();
+
+ applyPermanentUpgrades();
+
+ message="Neues Leben. Gleiche Langeweile.";
+
+ save();
+ render();
+
+};
+
+/* PARTIKEL */
+
+const canvas=$("particles");
+const ctx=canvas.getContext("2d");
+
+let particles=[];
+
+function resizeCanvas(){
+
+ canvas.width=window.innerWidth*devicePixelRatio;
+ canvas.height=window.innerHeight*devicePixelRatio;
+
+ ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+
+ particles=Array.from({length:55},()=>({
+
+  x:Math.random()*window.innerWidth,
+
+  y:Math.random()*window.innerHeight,
+
+  r:Math.random()*2+1,
+
+  speed:Math.random()*.5+.15,
+
+  alpha:Math.random()*.5+.1
+
+ }));
+
+}
+
+function animate(){
+
+ ctx.clearRect(0,0,window.innerWidth,window.innerHeight);
+
+ particles.forEach(p=>{
+
+  p.y-=p.speed;
+
+  if(p.y<0){
+
+   p.y=window.innerHeight;
+
+   p.x=Math.random()*window.innerWidth;
+
+  }
+
+  ctx.beginPath();
+
+  ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+
+  ctx.fillStyle=`rgba(165,242,121,${p.alpha})`;
+
+  ctx.fill();
+
+ });
+
+ requestAnimationFrame(animate);
+
+}
+
+window.addEventListener("resize",resizeCanvas);
+
+resizeCanvas();
+animate();
+
+/* OFFLINE-EINKOMMEN */
+
+const offlineSeconds=Math.max(
+ 0,
+ Math.min((Date.now()-s.last)/1000,86400)
+);
+
+const offlineGain=income()*offlineSeconds*offlineMultiplier;
+
+if(offlineGain>0){
+
+ earn(offlineGain);
+
+ message=`Willkommen zurück! Du hast ${fmt(offlineGain)} Punkte im Schlaf verdient.`;
+
+}
+
+s.last=Date.now();
+
+/* SPIELTICK */
+
+let lastTick=Date.now();
+
+function loop(){
+
+ const now=Date.now();
+
+ const elapsed=Math.max(0,Math.min((now-lastTick)/1000,10));
+
+ lastTick=now;
+
+ if(elapsed>0){
+
+  earn(income()*elapsed);
+
+  s.playtime+=elapsed;
+
+  s.highestIncome=Math.max(s.highestIncome,income());
+
+ }
+
+ render();
+
+}
+
+checkAchievements();
+render();
+
+setInterval(loop,1000);
+
+/* AUTO-SAVE */
+
+setInterval(()=>{
+
+ try{
+
+  s.last=Date.now();
+
+  localStorage.setItem(SAVE_KEY,JSON.stringify(s));
+
+ }catch{}
+
+},10000);
+
+window.addEventListener("beforeunload",()=>{
+
+ try{
+
+  s.last=Date.now();
+
+  localStorage.setItem(SAVE_KEY,JSON.stringify(s));
+
+ }catch{}
+
+});
+
+</script>
+
+</body>
+</html>
+```
